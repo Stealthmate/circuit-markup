@@ -3,7 +3,8 @@ logging.basicConfig(level=logging.DEBUG, format="[%(name)s][%(levelname)s]: %(me
 
 import sys
 from circuit_markup.parse import evaluate_file
-from circuit_markup.render import render
+from circuit_markup.render import Renderer
 
 assets, nodes, edges = evaluate_file(sys.argv[1])
-render(assets, nodes, edges, 'output.svg')
+renderer = Renderer(assets, nodes, edges)
+renderer.render('output.svg')

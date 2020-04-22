@@ -57,4 +57,4 @@ def load_asset(fid, fn):
     }
     meta['enter'] = common.Position(0, meta['height']/2)
     meta['exit'] = common.Position(meta['width'], meta['height']/2)
-    return svg, {}
+    return svg, meta

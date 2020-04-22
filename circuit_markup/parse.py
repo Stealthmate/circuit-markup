@@ -47,16 +47,31 @@ class Evaluator(CircuitMarkupVisitor):
     def visitAttributeAssigns(self, ctx):
         return dict(self.visit(c) for c in ctx.getChildren())
 
-    def visitEdgeChain(self, ctx):
-        if not ctx.edgeChain():
-            start = self.visit(ctx.position()[0])
-            end = self.visit(ctx.position()[1])
+    def visitEdgeChainStatement(self, ctx):
+        edges = self.visit(ctx.edgeChain())
+        for (start, attrs, end) in edges:
             self.edges.append({
                 'start': start,
-                'end': end
+                'end': end,
+                **attrs
             })
+
+
+    def visitEdge(self, ctx):
+        if not ctx.attributeAssigns():
+            return {}
         else:
-            raise NotImplementedError()
+            return self.visit(ctx.attributeAssigns())
+
+    def visitEdgeChain(self, ctx):
+        start = self.visit(ctx.position()[0])
+        attrs = self.visit(ctx.edge())
+
+        if not ctx.edgeChain():
+            end = self.visit(ctx.position()[1])
+            return [(start, attrs, end)]
+        tail = self.visit(ctx.edgeChain())
+        return [(start, attrs, tail[0][0]), *tail]
 
     def visitNodePlaceStatement(self, ctx):
         nid = ctx.ID().getText()
