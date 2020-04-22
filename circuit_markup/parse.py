@@ -5,34 +5,15 @@ from circuit_markup.antlr.CircuitMarkupVisitor import CircuitMarkupVisitor
 
 from pathlib import Path
 
-import xml.etree.ElementTree as ET
+from lxml import etree as ET
 import logging
-from collections import namedtuple
 from yaml import load
-
 log = logging.getLogger(__name__)
+
+from circuit_markup import asset, common
 
 class EvalError(Exception):
     pass
-
-class TagError(Exception):
-    pass
-
-Position = namedtuple("Position", ["x", "y"])
-
-def clean_tags(tags):
-    cleaned = {}
-    for t, v in tags.items():
-        if 'x' not in v:
-            raise TagError("Tag has no x coordinate!")
-        if 'y' not in v:
-            raise TagError("Tag has no x coordinate!")
-        try:
-            cleaned[t] = Position(float(v['x']), float(v['y']))
-        except ValueError as e:
-            raise TagError(e)
-    return cleaned
-
 
 class Evaluator(CircuitMarkupVisitor):
     def __init__(self):
@@ -42,7 +23,7 @@ class Evaluator(CircuitMarkupVisitor):
 
     def visitCoordinates(self, ctx):
         xs = ctx.NUMBER()
-        return Position(*(float(x.getText()) for x in xs))
+        return common.Position(*(float(x.getText()) for x in xs))
 
     def visitNodeAnchor(self, ctx):
         nid, attr = (x.getText() for x in ctx.ID())
@@ -51,7 +32,7 @@ class Evaluator(CircuitMarkupVisitor):
         if attr not in self.nodes[nid]:
             raise EvalError(f"Node {nid} has no attribute {attr}")
         p = self.nodes[nid][attr]
-        if not isinstance(p, Position):
+        if not isinstance(p, common.Position):
             raise EvalError(f"{nid}.{attr} is not a position")
         return p
 
@@ -86,41 +67,23 @@ class Evaluator(CircuitMarkupVisitor):
 
     def visitUseStatement(self, ctx):
         s = self.visit(ctx.stringL())
-        files = []
-        dirPath = Path(s)
-        filePath = Path(f"{s}.svg")
-        if dirPath.is_dir():
-            log.debug(f"Importing from directory {dirPath}...")
-            fps = dirPath.glob("*.svg")
-            files.extend([(str(f)[:-4], str(f)) for f in fps])
-            pass
-        elif filePath.is_file():
-            files.append((s, filePath))
-        else:
-            raise ValueError(f"Could not import {s} - it's neither a file nor a directory!")
-
-        for fid, fp in files:
+        files = asset.load_path(s)
+        for fid, fn in files:
             if fid in self.imported:
                 log.warn(f"Asset {s} already imported. Skipping...")
+                continue
+
+            tags = asset.load_asset_tags(fn)
+            if not tags:
+                log.debug(f"Asset {fid} has no tag file.")
             else:
-                yp = Path(fid + ".yaml")
-                if not yp.is_file():
-                    yp = Path(fid + ".yml")
+                log.debug(f"Loaded tags for asset {fid}")
 
-                log.debug(f"Importing {fp} as {fid}...")
-                self.imported[fid] = {'svg': None, 'tags': {}}
-                self.imported[fid]['svg'] = ET.parse(fp).getroot()
-                self.imported[fid]['svg'].attrib['id'] = s
-
-                if not yp.is_file():
-                    log.debug(f"Asset {fid} has no tag file.")
-                else:
-                    log.debug(f"Asset {fid} has tag file {yp}")
-                    tags = {}
-                    with open(yp) as f:
-                        tags = clean_tags(load(f))
-                    self.exposed_values[fid] = tags
-
+            svg, meta = asset.load_asset(fid, fn)
+            self.imported[fid] = {
+                **meta,
+                'svg': svg
+            }
 
     def visitStringL(self, ctx):
         return ctx.QUOTED_STRING().getText()[1:-1]
@@ -142,6 +105,8 @@ def _evaluate(prog):
     print("Exposed")
     for e, v in visitor.exposed_values.items():
         print("   ", e, ":", v)
+
+    return visitor.imported, visitor.nodes
 
 def evaluate_file(f):
     return _evaluate(FileStream(f))

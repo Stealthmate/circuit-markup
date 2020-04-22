@@ -3,6 +3,7 @@ logging.basicConfig(level=logging.DEBUG, format="[%(name)s][%(levelname)s]: %(me
 
 import sys
 from circuit_markup.parse import evaluate_file
+from circuit_markup.render import render
 
-r = evaluate_file(sys.argv[1])
-print(r)
+assets, nodes = evaluate_file(sys.argv[1])
+render(assets, nodes, 'output.svg')
