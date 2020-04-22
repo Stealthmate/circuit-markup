@@ -1,3 +1,9 @@
-<svg viewBox="-50 -15 100 30" width="100" height="30">
-  <rect x="-49" y="-14" width="98" height="18" stroke="black" fill="white" stroke-width="2"/>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"  width="100" height="30">
+  <defs>
+    <rect id="r" width="100" height="30"/>
+    <clipPath id="clip">
+		  <use xlink:href="#r"/>
+	  </clipPath>
+  </defs>
+  <use xlink:href="#r" x="0" y="0" stroke="black" fill="white" stroke-width="4" clip-path="url(#clip)"/>
 </svg>
