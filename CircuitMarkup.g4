@@ -1,15 +1,15 @@
 grammar CircuitMarkup;
 
 program : statement* EOF;
-statement : useStatement | nodePlaceStatement | edgeChain;
+statement : useStatement | nodePlaceStatement | edgeChainStatement;
 useStatement : USE stringL ';';
 
 nodePlaceStatement : ID '{' attributeAssigns '}'  position ';' | ID position ';';
 attributeAssigns : attributeAssign*;
 attributeAssign : ID '=' expression ';';
 
+edgeChainStatement : edgeChain ';';
 edgeChain : position edge position | position edge edgeChain ;
-
 edge : '-{' attributeAssigns '}-' | '--';
 
 position : coordinates | nodeAnchor ;

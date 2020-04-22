@@ -20,6 +20,7 @@ class Evaluator(CircuitMarkupVisitor):
         self.imported = {}
         self.nodes = {}
         self.exposed_values = {}
+        self.edges = []
 
     def visitCoordinates(self, ctx):
         xs = ctx.NUMBER()
@@ -45,6 +46,17 @@ class Evaluator(CircuitMarkupVisitor):
 
     def visitAttributeAssigns(self, ctx):
         return dict(self.visit(c) for c in ctx.getChildren())
+
+    def visitEdgeChain(self, ctx):
+        if not ctx.edgeChain():
+            start = self.visit(ctx.position()[0])
+            end = self.visit(ctx.position()[1])
+            self.edges.append({
+                'start': start,
+                'end': end
+            })
+        else:
+            raise NotImplementedError()
 
     def visitNodePlaceStatement(self, ctx):
         nid = ctx.ID().getText()
@@ -105,8 +117,10 @@ def _evaluate(prog):
     print("Exposed")
     for e, v in visitor.exposed_values.items():
         print("   ", e, ":", v)
-
-    return visitor.imported, visitor.nodes
+    print("Edges")
+    for e in visitor.edges:
+        print(e)
+    return visitor.imported, visitor.nodes, visitor.edges
 
 def evaluate_file(f):
     return _evaluate(FileStream(f))
