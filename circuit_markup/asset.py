@@ -7,6 +7,7 @@ log = logging.getLogger(__name__)
 
 from circuit_markup import common
 
+
 def load_path(path, ignore=[]):
     files = []
     dirPath = Path(path)
@@ -26,12 +27,13 @@ def load_asset_tags(fid):
     yp = Path(str(fid) + ".yaml")
     if not yp.is_file():
         yp = Path(str(fid) + ".yml")
-    if not yp.is_file():
-        return None
+        if not yp.is_file():
+            return None
+    print(yp)
 
     tags = {}
     with open(yp) as f:
-        tags = clean_tags(yaml.load(f))
+        tags = yaml.load(f)
 
     cleaned = {}
     for t, v in tags.items():
@@ -39,9 +41,8 @@ def load_asset_tags(fid):
             raise ValueError("Tag has no x coordinate!")
         if 'y' not in v:
             raise ValueError("Tag has no x coordinate!")
-        cleaned[t] = Position(float(v['x']), float(v['y']))
+        cleaned[t] = common.Position(float(v['x']), float(v['y']))
     return cleaned
-
 
 
 def load_asset(fid, fn):

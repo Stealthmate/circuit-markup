@@ -5,6 +5,15 @@ import numpy as np
 def formatID(_id):
     return _id.replace("/", "--")
 
+def rotMat(a):
+    return np.array([
+        [np.cos(a), -np.sin(a)],
+        [np.sin(a), np.cos(a)]
+    ])
+
+def vecAngle(a, b):
+    return np.arctan2(a[1], a[0]) - np.arctan2(b[1], b[0])
+
 class Renderer:
     def __init__(self, assets, nodes, edges):
         self.assets = assets
@@ -29,58 +38,58 @@ class Renderer:
             'x2': str(end[0]),
             'y2': str(end[1]),
             'stroke-width': '3',
-            'stroke': 'black'
+            'stroke': 'black',
+            'stroke-linejoin': 'miter',
+            'stroke-linecap': 'round'
         })
 
     def renderEdge(self, edge):
         start = np.array(edge['start'])
         end = np.array(edge['end'])
+        print("From", start, "To", end)
         attr = edge
         if 'shape' not in attr:
             return self.renderLineEdge(start, end, attr)
 
+        g = ET.Element('g')
         aid = attr['shape']
         asset = self.assets[aid]
-        dim = np.array([
-            asset['width'],
-            asset['height']
-        ])
+        penter = np.array(asset['enter'])
+        pexit = np.array(asset['exit'])
 
-        g = ET.Element('g')
+        edge_d = end - start
+        edge_mid = start + edge_d/2
 
-        d = end - start
-        midpoint = start + d/2
-        angle = np.arctan2(d[1], d[0])
-        M = np.array([
-            [np.cos(angle), -np.sin(angle)],
-            [np.sin(angle),  np.cos(angle)]
-        ])
+        el_d = pexit - penter
+        el_mid = penter + el_d/2
 
-        edge_offset = M @ [
-            (np.linalg.norm(d) - dim[0]) / 2,
-            0
-        ]
-        enter_point = start + edge_offset
-        g.append(self.renderLineEdge(start, enter_point, {}))
-        exit_point = end - edge_offset
-        g.append(self.renderLineEdge(exit_point, end, {}))
+        edge_el_d = edge_d - el_d
+        angle = vecAngle(edge_d, el_d)
+        M = rotMat(angle)
+
+        pos = edge_mid - M @ el_mid
 
         comp = ET.SubElement(g, 'use')
         comp.attrib[QName(self.NS['xlink'], 'href')] = '#' + formatID(aid)
-        pos = midpoint - dim/2
-        print(pos)
         comp.attrib['x'] = str(pos[0])
         comp.attrib['y'] = str(pos[1])
-        comp.attrib['transform'] = f'rotate({180 * angle / np.pi} {midpoint[0]} {midpoint[1]})'
+        comp.attrib['transform'] = f'rotate({180 * angle / np.pi} {pos[0]} {pos[1]})'
 
         bounds = np.array([
-            [-dim[0],  dim[1]],
-            [-dim[0], -dim[1]],
-            [ dim[0],  dim[1]],
-            [ dim[0], -dim[1]]
-        ]).T / 2
-        r = midpoint + (M @ bounds).T
-        self.updateBounds(r[0], r[1])
+            [0, 0],
+            [0, asset['width']],
+            [asset['height'], 0],
+            [asset['width'], asset['height']]
+        ]).T
+        r = pos + (M @ bounds).T
+        self.updateBounds(r[:,0], r[:,1])
+
+        comp_offset = M @ (el_d)
+        # enter_point = start + edge_offset
+        g.append(self.renderLineEdge(start, edge_mid - comp_offset/2, {}))
+        g.append(self.renderLineEdge(edge_mid + comp_offset/2, end, {}))
+        # exit_point = end - edge_offset
+        # g.append(self.renderLineEdge(exit_point, end, {}))
 
         return g
 
@@ -103,13 +112,6 @@ class Renderer:
 
     def render(self, output):
         root = ET.Element('svg', nsmap=self.NS, attrib={ 'version': '1.1' })
-        # ET.SubElement(root, 'rect', attrib={
-        #     'x': '0',
-        #     'y': '0',
-        #     'width': '300',
-        #     'height': '200',
-        #     'fill': 'red'
-        # })
 
         defs = ET.SubElement(root, 'defs')
         for aid, ainfo in self.assets.items():
@@ -129,6 +131,9 @@ class Renderer:
         x1 = min(0, *self.bounds[0]) - padding
         y1 = min(0, *self.bounds[1]) - padding
         gNet.attrib['transform'] = f"translate({-x1} {-y1})"
+
+        root.attrib['width'] = str(max(*self.bounds[0]) + padding - x1)
+        root.attrib['height'] = str(max(*self.bounds[1]) + padding - y1)
 
         doctype = '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">'
         ET.ElementTree(root).write(output, doctype=doctype, pretty_print=True)

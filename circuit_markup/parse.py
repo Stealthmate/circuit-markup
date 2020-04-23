@@ -100,15 +100,17 @@ class Evaluator(CircuitMarkupVisitor):
                 log.warn(f"Asset {s} already imported. Skipping...")
                 continue
 
-            tags = asset.load_asset_tags(fn)
+            tags = asset.load_asset_tags(fid)
             if not tags:
                 log.debug(f"Asset {fid} has no tag file.")
+                tags = {}
             else:
                 log.debug(f"Loaded tags for asset {fid}")
 
             svg, meta = asset.load_asset(fid, fn)
             self.imported[fid] = {
                 **meta,
+                **tags,
                 'svg': svg
             }
 
