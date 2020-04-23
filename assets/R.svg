@@ -5,5 +5,5 @@
 		  <use xlink:href="#r"/>
 	  </clipPath>
   </defs>
-  <use xlink:href="#r" x="0" y="0" stroke="black" fill="white" stroke-width="4" clip-path="url(#clip)"/>
+  <use xlink:href="#r" x="0" y="0" stroke="black" fill="white" stroke-width="6" clip-path="url(#clip)"/>
 </svg>
