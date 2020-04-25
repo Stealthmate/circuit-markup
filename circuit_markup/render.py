@@ -94,16 +94,30 @@ class Renderer:
         return g
 
     def renderNode(self, nid, ninfo):
-        if 'shape' not in ninfo:
-            return
-        sid = formatID(ninfo['shape'])
-        el = ET.Element('use', attrib={
-            QName(self.NS['xlink'], 'href'): f'#{sid}',
-            'x': str(ninfo['x']),
-            'y': str(ninfo['y'])
-        })
 
-        return el
+        g = ET.Element('g')
+
+        if 'shape' in ninfo:
+            sid = formatID(ninfo['shape'])
+            el = ET.SubElement(g, 'use', attrib={
+                QName(self.NS['xlink'], 'href'): f'#{sid}',
+                'x': str(ninfo['x']),
+                'y': str(ninfo['y'])
+            })
+
+        if 'label' in ninfo:
+            label = ninfo['label']
+            x = ninfo['x']
+            y = ninfo['y']
+            txt = ET.SubElement(g, 'text', attrib={
+                'x': str(x),
+                'y': str(y),
+                'dominant-baseline': 'middle',
+                'text-anchor': 'middle'
+            })
+            txt.text = label
+
+        return g
 
     def renderAsset(self, aid, ainfo):
         svg = ainfo['svg']
@@ -121,7 +135,9 @@ class Renderer:
 
         gNodes = ET.SubElement(gNet, 'g')
         for nid, ninfo in self.nodes.items():
-            gNodes.append(self.renderNode(nid, ninfo))
+            el = self.renderNode(nid, ninfo)
+            if el:
+                gNodes.append(el)
 
         gEdges = ET.SubElement(gNet, 'g')
         for edge in self.edges:
