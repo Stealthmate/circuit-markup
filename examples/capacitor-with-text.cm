@@ -1,0 +1,5 @@
+use "assets/B";
+use "assets/C";
+
+(0, 0) -{shape="assets/B";}- (0, 200) -- (200, 200) -{shape="assets/C";}- (200, 0) -- (0, 0);
+name_of_node {label="10uF";} (130, 100);
