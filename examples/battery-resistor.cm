@@ -1,0 +1,4 @@
+use "assets/B";
+use "assets/R";
+
+(0, 0) -{shape="assets/B";}- (0, 200) -- (200, 200) -{shape="assets/R";}- (200, 0) -- (0, 0);

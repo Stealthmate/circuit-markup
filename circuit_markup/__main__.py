@@ -7,4 +7,4 @@ from circuit_markup.render import Renderer
 
 assets, nodes, edges = evaluate_file(sys.argv[1])
 renderer = Renderer(assets, nodes, edges)
-renderer.render('output.svg')
+renderer.render(sys.argv[2])
